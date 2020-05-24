@@ -11,6 +11,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
 
         // Generate Placeholders for the results of all queries to be executed.
         generatePlaceHolders(queries);
+
+        // Execute Queries
+        executeQueries(queries);
     }).catch(e => {
         console.log('Unable to extract queries to be executed from: ' + query_map_link);
     });
@@ -39,6 +42,13 @@ function generatePlaceHolders(queries) {
         document.getElementById('progress-results').appendChild(row);
     });
 }
+
+function executeQueries(queries) {
+    let uniqueQueryIds = Object.keys(queries);
+
+    uniqueQueryIds.forEach(id => executeQuery(id, ''));
+}
+
 
 document.getElementById('query-execute-submit-btn')
     .addEventListener('click', (e) => {

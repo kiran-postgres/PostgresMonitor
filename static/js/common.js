@@ -80,6 +80,54 @@ function createCard(queryId, heading, captionText, cardWidth) {
 }
 
 
+function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = true) {
+    console.log('Table ID: ' + queryId + '-table');
+
+    if (link === null)
+        link = "http://localhost:5000/query_execution/" + queryId + parameters;
+
+    // Target Table ID
+    let tableId = queryId + '-table';
+
+    // Table footer to show alerts
+    let tableFooter = `${queryId}-table-footer`;
+    let tableFooterText = `${queryId}-table-footer-text`;
+
+    fetchRemoteData(link).then((jsonData) => {
+        if (jsonData.status === 'success') {
+            while (document.getElementById(`${tableId}`).children.length > 0)
+                document.getElementById(`${tableId}`).firstChild.remove();
+
+            let table = createTable(jsonData.data.columns, jsonData.data.records, tableId + '-temp');
+
+            document.getElementById(`${tableId}`).appendChild(table);
+
+            // Make it a Data table based on the flag. Default is True.
+            if (dataTableDisplayFlag) {
+                $(`#${tableId}-temp`).DataTable({
+                    responsive: true,
+                    "pageLength": 10
+                });
+            }
+
+            document.getElementById(tableFooterText).innerText = `${jsonData.data.records.length} records fetched`;
+            document.getElementById(tableFooter).className = 'card-footer alert alert-success alert-dismissible';
+        } else {
+            // If there is any problem with the Query, show the error message.
+            let errorMessage = `There is a problem executing Query ID: ${queryId}.\n`
+            document.getElementById(tableFooterText).innerText = errorMessage + jsonData.data;
+            document.getElementById(tableFooter).className = 'card-footer alert alert-danger alert-dismissible';
+        }
+    }).catch(e => {
+        // If there is any problem with http link, or with fetching resources, show the error message.
+        document.getElementById(tableFooterText).innerText = e;
+        document.getElementById(tableFooter).className = 'card-footer alert alert-danger alert-dismissible';
+    });
+
+    clearFooter(tableFooter, tableFooterText);
+}
+
+
 function createTable(columns, data, id) {
     let table = document.createElement('table');
     table.id = id;

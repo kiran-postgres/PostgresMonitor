@@ -117,15 +117,26 @@ def query_execution(query_id):
     paramerter_values = list()
     [paramerter_values.append(request.args[parm]) for parm in parameter_names]
 
-    print(paramerter_values)
+    app.logger.debug('Query parameters for {}'.format(query_id))
+    app.logger.debug(parameter_names)
+    app.logger.debug(paramerter_values)
+
+    # Holds Query results
     records = list()
+    parameters = []
+
+    if len(paramerter_values) == 0:
+        parameters = None
+    else:
+        parameters = paramerter_values
 
     if query_id in qry.keys():
-        query = qry[query_id]
-        records = execute_query(query, paramerter_values)
+        query = qry[query_id]['query']
+        records = execute_query(query, parameters)
     else:
         records.append('Exception: ' + query_id + ' not found in list of configured queries')
 
+    # Format Query results in JSON form.
     result = format_data(records)
     return result
 

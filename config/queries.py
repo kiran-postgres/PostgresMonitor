@@ -35,7 +35,7 @@ qry['running-queries'] = {
     'query': """
 SELECT
     pid,
-    age(query_start, clock_timestamp()),
+    --age(query_start, clock_timestamp()),
     usename,
     query
 FROM
@@ -44,5 +44,53 @@ WHERE
     query != '<IDLE>'
 AND query NOT ilike '%pg_stat_activity%' 
 order by query_start desc
+"""
+}
+
+qry['queries-running-for-morethan-2-mins'] = {
+    'heading': 'Queries running for more than 2 minutes',
+    'caption': '',
+    'query': """
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+"""
+}
+
+qry['table-sizes'] = {
+    'heading': 'Table Sizes',
+    'caption': 'Following table shows Table Sizes in this database',
+    'query': """
+SELECT
+    relname,
+    pg_size_pretty
+    ( pg_total_relation_size ( relname::regclass)) as full_size, 
+    pg_size_pretty(pg_relation_size(relname::regclass)) as table_size, 
+    pg_size_pretty(pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass)) as index_size 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+"""
+}
+
+qry['database-sizes'] = {
+    'heading': 'Database Sizes',
+    'caption': 'Following table Database sizes',
+    'query': """
+SELECT
+    datname,
+    pg_size_pretty(pg_database_size(datname))
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
 """
 }
