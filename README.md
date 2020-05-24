@@ -21,3 +21,6 @@ It requires the following Python packages:
 ## Developers
 - PP
 - RK
+
+## Sample
+![](postgress-demo.gif)
