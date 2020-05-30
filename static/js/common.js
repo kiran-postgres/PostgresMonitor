@@ -1,4 +1,4 @@
-function createRow(items) {
+function createRow(item) {
     let section = document.createElement('section');
 
     let containerFluid = document.createElement('div');
@@ -7,20 +7,43 @@ function createRow(items) {
     let jumbotron = document.createElement('div');
     jumbotron.className = 'jumbotron';
 
-    let row = document.createElement('div');
-    row.className = 'row clearfix';
+    if (item['table-bootstrap-class'] === 'col-6' &&
+        item['graph-required'] === 'Y' &&
+        item['graph-bootstrap-class'] === 'col-6') {
 
-    items.forEach(item => {
+        let row = document.createElement('div');
+        row.className = 'row clearfix';
+
         let tableCard = createCard(item['queryId'], 'table', item['heading'], item['caption'], item['table-bootstrap-class']);
         row.appendChild(tableCard);
 
-        if (item['graph-required'] === 'Y') {
-            let graphCard = createCard(item['queryId'], 'graph', item['heading'], item['caption'], item['graph-bootstrap-class']);
-            row.appendChild(graphCard);
-        }
-    });
+        let graphCard = createCard(item['queryId'], 'graph', item['heading'], item['caption'], item['graph-bootstrap-class']);
+        row.appendChild(graphCard);
 
-    jumbotron.appendChild(row);
+        jumbotron.appendChild(row);
+        containerFluid.appendChild(jumbotron);
+        section.appendChild(containerFluid);
+
+        return section;
+    }
+
+    // Create a place holder for Table Data
+    let tableRow = document.createElement('div');
+    tableRow.className = 'row clearfix';
+
+    let tableCard = createCard(item['queryId'], 'table', item['heading'], item['caption'], item['table-bootstrap-class']);
+    tableRow.appendChild(tableCard);
+    jumbotron.appendChild(tableRow);
+
+    if (item['graph-required'] === 'Y') {
+        let graphRow = document.createElement('div');
+        graphRow.className = 'row clearfix my-5';
+
+        let graphCard = createCard(item['queryId'], 'graph', item['heading'], item['caption'], item['graph-bootstrap-class']);
+        graphRow.appendChild(graphCard);
+        jumbotron.appendChild(graphRow);
+    }
+
     containerFluid.appendChild(jumbotron);
     section.appendChild(containerFluid);
 
@@ -86,26 +109,27 @@ function createCard(queryId, type, heading, captionText, cardWidth) {
 }
 
 
-function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = true) {
-    console.log('Table ID: ' + queryId + '-table');
+function executeQueries(queries) {
+    let uniqueQueryIds = Object.keys(queries);
+    uniqueQueryIds.forEach(id => executeQuery(id, ''));
+}
 
+function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = true) {
     if (link === null)
-        link = "http://localhost:5000/query_execution/" + queryId + parameters;
+        link = queryExecutionLink + queryId + parameters;
 
     // Target Table ID
     let tableId = queryId + '-table';
-
-    // Table footer to show alerts
     let tableFooter = `${queryId}-table-footer`;
     let tableFooterText = `${queryId}-table-footer-text`;
 
     fetchRemoteData(link).then((jsonData) => {
         if (jsonData.status === 'success') {
+            // Remove existing Data in the table
             while (document.getElementById(`${tableId}`).children.length > 0)
                 document.getElementById(`${tableId}`).firstChild.remove();
 
             let table = createTable(jsonData.data.columns, jsonData.data.records, tableId + '-temp');
-
             document.getElementById(`${tableId}`).appendChild(table);
 
             // Make it a Data table based on the flag. Default is True.
@@ -116,9 +140,19 @@ function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = t
                 });
             }
 
-            // Draw Graph
-            let graphId = queryId + '-graph';
-            drawBarGraph(graphId, 'Database Sizes', null, jsonData.data.columns, jsonData.data.records);
+            if (queries[queryId]['graph-required'] === 'Y') {
+                let graphId = queryId + '-graph';
+
+                switch (queries[queryId]['graph-type']) {
+                    case 'pie-chart':
+                        drawPieChart(graphId, 'Database Sizes', null, jsonData.data.columns, jsonData.data.records);
+                        break;
+
+                    case 'bar-graph':
+                        drawBarGraph(graphId, 'Database Sizes', null, jsonData.data.columns, jsonData.data.records);
+                        break;
+                }
+            }
 
             document.getElementById(tableFooterText).innerText = `${jsonData.data.records.length} records fetched`;
             document.getElementById(tableFooter).className = 'card-footer alert alert-success alert-dismissible';
@@ -206,9 +240,7 @@ function clearFooter(footerId, footerTextId) {
  * @returns {Promise<any>}
  */
 async function fetchRemoteData(link) {
-    console.log('Going to fetch data for ' + link);
     let response = await fetch(link);
     let data = await response.json();
     return data;
 }
-

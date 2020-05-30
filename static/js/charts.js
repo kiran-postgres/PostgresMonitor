@@ -6,6 +6,15 @@ function drawBarGraph(queryId, title, subtitle, columns, data) {
     let footerId = `${queryId}-footer`;
     let footerTextId = `${queryId}-footer-text`;
 
+    data.forEach(record => {
+        for (let i = 0; i < record.length; i++) {
+            if (i > 0)
+                record[i] = parseFloat(record[i]);
+        }
+    });
+
+    console.log(data);
+
     // Add Columns as the first element.
     data.splice(0, 0, columns);
     let dataforGraph = google.visualization.arrayToDataTable(data);

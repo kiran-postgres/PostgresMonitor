@@ -1,6 +1,7 @@
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
+import os
 
 import psycopg2
 from flask import Flask, render_template, request, jsonify
@@ -13,9 +14,10 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config.from_object('settings')
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'images')
 
 # Logging
-handler = RotatingFileHandler('postgress-monitoring.log', maxBytes=10000, backupCount=2)
+handler = RotatingFileHandler('postgress-monitoring.log', maxBytes=10000, backupCount=5)
 handler.setLevel(logging.DEBUG)
 app.logger.addHandler(handler)
 
@@ -91,7 +93,8 @@ def home():
     """
     Index page
     """
-    return render_template('index.html')
+    pie_chart = os.path.join(app.config['UPLOAD_FOLDER'], 'postgresql_elephant.svg')
+    return render_template('index.html', pie_chart=pie_chart)
 
 
 @app.route('/get_query_map')

@@ -1,18 +1,20 @@
 let webServer = 'http://localhost:5000';
 let query_map_link = webServer + '/get_query_map';
+let queryExecutionLink = 'http://localhost:5000/query_execution/';
 let queries = {};
 
 // On Page loading, retrieve the list of queries to be executed and rendered.
 window.addEventListener('DOMContentLoaded', (event) => {
-    console.log('DOM fully loaded and parsed');
-
     fetchRemoteData(query_map_link).then((data) => {
         queries = data;
 
-        // Generate Placeholders for the results of all queries to be executed.
+        // When a query executes, its results will be rendered in tabular format. This step
+        // Creates the place holders / IDs for the table. For each query, there will be a table.
+        // For some queries, we would like to generate Graphs too. Based on Queries configuration,
+        // this step generates a place holder for graph too!
         generatePlaceHolders(queries);
 
-        // Execute Queries
+        // Execute all the Queries
         executeQueries(queries);
     }).catch(e => {
         console.log('Unable to extract queries to be executed from: ' + query_map_link);
@@ -30,7 +32,6 @@ function generatePlaceHolders(queries) {
     let uniqueQueryIds = Object.keys(queries);
 
     uniqueQueryIds.forEach(id => {
-        let items = [];
         let item = {};
         item['queryId'] = id;
         item['heading'] = queries[id]['heading'];
@@ -55,20 +56,10 @@ function generatePlaceHolders(queries) {
                 item['graph-bootstrap-class'] = 'col-12';
         }
 
-        console.log(item);
-        items.push(item);
-
-        let row = createRow(items);
+        let row = createRow(item);
         document.getElementById('progress-results').appendChild(row);
     });
 }
-
-function executeQueries(queries) {
-    let uniqueQueryIds = Object.keys(queries);
-
-    uniqueQueryIds.forEach(id => executeQuery(id, ''));
-}
-
 
 document.getElementById('query-execute-submit-btn')
     .addEventListener('click', (e) => {

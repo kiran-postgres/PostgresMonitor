@@ -12,7 +12,8 @@
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.13/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Courier Prime|Amiri">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Courier Prime|Amiri|Crimson Text|Crimson Text Italic">
     <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
     <!--    <link rel="stylesheet" href="css/style.css">-->
 
@@ -39,7 +40,8 @@
         }
 
         p {
-            font-family: 'Amiri', serif;
+            font-family: 'Crimson Text', serif;
+            font-size: 20px;
         }
 
         .scrollme {
@@ -75,7 +77,7 @@
             overflow-x: scroll;
             overflow-y: hidden;
             width: 100%;
-            height: 850px;
+            height: 600px;
         }
 
         .card-header {
@@ -92,9 +94,10 @@
             font-family: 'Amiri', serif;
         }
 
-        .card {
+        /*
+       .card {
             box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
-        }
+        }*/
 
         thead {
             background: #727BD8;
@@ -109,9 +112,59 @@
 <main role="main">
     <div class="jumbotron">
         <div class="container">
-            <h1 class="display-3">O36</h1>
+            <h1 class="display-3" style="font-family: Crimson Text">PostgresMonitor</h1>
         </div>
     </div>
+
+    <div class="jumbotron">
+        <div class="card-deck">
+            <div class="card">
+                <img src="https://source.unsplash.com/random/299x199" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Storage</h5>
+                    <p class="card-text">This section shows storage related data. It includes Database, Table sizes, Allocation, Usage, Free space, etc.</p>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Last updated 3 mins ago</small>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://source.unsplash.com/random/299x199" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Current State</h5>
+                    <p class="card-text">Shows Currently running Queries, </p>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Last updated 3 mins ago</small>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://source.unsplash.com/random/300x200" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Card title</h5>
+                    <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
+                        additional
+                        content. This card has even longer content than the first to show that equal height action.</p>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Last updated 3 mins ago</small>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://source.unsplash.com/random/300x200" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">Card title</h5>
+                    <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
+                        additional
+                        content. This card has even longer content than the first to show that equal height action.</p>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Last updated 3 mins ago</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 <section>
