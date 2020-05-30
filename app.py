@@ -42,6 +42,7 @@ def get_db_connection():
     return db_connection
 
 
+# noinspection PyBroadException
 def execute_query(query, parameters):
     connection = get_db_connection()
     app.logger.debug('Query to be executed:')
@@ -52,15 +53,26 @@ def execute_query(query, parameters):
         cur = connection.cursor()
         cur.execute(query, parameters)
 
-        field_names = [i[0] for i in cur.description]
+        # Get Column names
+        field_names = [i[0].upper() for i in cur.description]
         records.append(field_names)
-        print(field_names)
 
+        # Process all the records
         for record in cur:
             rec = []
-            [rec.append(record[i] if record[i] is not None else "") for i in range(len(record))]
-            records.append(rec)
 
+            # SQL Query result can contain different types of data - Int, Char, Decimal, CLOB, etc.
+            # Converting all types to Char so that, when preparing JSON format, there won't be any
+            # errors.
+            for i in range(len(record)):
+                string_value = ''
+                try:
+                    string_value = str(record[i]) if record[i] is not None else ''
+                except Exception as error:
+                    print('Unable to convert value to String; value: {}'.format(record[i]))
+
+                rec.append(string_value)
+            records.append(rec)
         cur.close()
     except Exception as err:
         # A SQL Query could fail due to any number of reasons. Syntax could be wrong, Database could be down,
@@ -90,7 +102,11 @@ def get_query_map():
     for key in qry.keys():
         config_data[key] = {
             'heading': qry[key]['heading'],
-            'caption': qry[key]['caption']
+            'caption': qry[key]['caption'],
+            'table-width': qry[key]['table-width'],
+            'graph-width': qry[key]['graph-width'],
+            'graph-required': qry[key]['graph-required'],
+            'graph-type': qry[key]['graph-type']
         }
 
     return jsonify(config_data)
@@ -198,7 +214,6 @@ def convert_lob_object_to_string(lob_object):
     temp.close()
 
     return result
-
 
 
 if __name__ == '__main__':

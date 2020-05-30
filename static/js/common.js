@@ -11,8 +11,13 @@ function createRow(items) {
     row.className = 'row clearfix';
 
     items.forEach(item => {
-        let card = createCard(item['queryId'], item['heading'], item['caption'], item['cardWidth']);
-        row.appendChild(card);
+        let tableCard = createCard(item['queryId'], 'table', item['heading'], item['caption'], item['table-bootstrap-class']);
+        row.appendChild(tableCard);
+
+        if (item['graph-required'] === 'Y') {
+            let graphCard = createCard(item['queryId'], 'graph', item['heading'], item['caption'], item['graph-bootstrap-class']);
+            row.appendChild(graphCard);
+        }
     });
 
     jumbotron.appendChild(row);
@@ -26,11 +31,12 @@ function createRow(items) {
  *
  * @param queryId - Unique ID of the query that will be executed. This comes from
  *                  backend.
+ * @param type - Either 'table' or 'graph'
  * @param heading - Heading of the table.
  * @param captionText - Any Caption to be displayed.
  * @param cardWidth - This controls width of the table (This is Bootstrap class name like COL-6, COL-12, etc).
  */
-function createCard(queryId, heading, captionText, cardWidth) {
+function createCard(queryId, type, heading, captionText, cardWidth) {
     let cardWrapper = document.createElement('div');
     cardWrapper.className = cardWidth;
 
@@ -59,17 +65,17 @@ function createCard(queryId, heading, captionText, cardWidth) {
     caption.innerText = captionText;
 
     let table = document.createElement('div');
-    table.id = `${queryId}-table`;
+    table.id = `${queryId}-${type}`;
 
     cardBody.append(caption, table);
 
     // Card footer
     let cardFooter = document.createElement('div');
     cardFooter.className = 'card-footer';
-    cardFooter.id = `${queryId}-table-footer`;
+    cardFooter.id = `${queryId}-${type}-footer`;
 
     let footerText = document.createElement('span');
-    footerText.id = `${queryId}-table-footer-text`;
+    footerText.id = `${queryId}-${type}-footer-text`;
 
     cardFooter.appendChild(footerText);
 
@@ -109,6 +115,10 @@ function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = t
                     "pageLength": 10
                 });
             }
+
+            // Draw Graph
+            let graphId = queryId + '-graph';
+            drawBarGraph(graphId, 'Database Sizes', null, jsonData.data.columns, jsonData.data.records);
 
             document.getElementById(tableFooterText).innerText = `${jsonData.data.records.length} records fetched`;
             document.getElementById(tableFooter).className = 'card-footer alert alert-success alert-dismissible';

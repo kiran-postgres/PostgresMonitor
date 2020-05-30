@@ -1,6 +1,6 @@
 DEBUG = True
-USERNAME = ''
-PASSWORD = ''
+USERNAME = 'postgres'
+PASSWORD = 'postgres'
 DB = 'dvdrental'
-ENDPOINT = ''
+ENDPOINT = 'repotest.c7bxy1mpyupz.us-east-2.rds.amazonaws.com'
 PORT = '5432'

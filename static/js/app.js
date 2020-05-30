@@ -35,7 +35,27 @@ function generatePlaceHolders(queries) {
         item['queryId'] = id;
         item['heading'] = queries[id]['heading'];
         item['caption'] = queries[id]['caption'];
-        item['cardWidth'] = 'col-12';
+        item['graph-required'] = queries[id]['graph-required'];
+        item['graph-type'] = queries[id]['graph-type'];
+        item['graph-width'] = queries[id]['graph-width'];
+        item['table-width'] = queries[id]['table-width'];
+
+        // Setup Bootstrap class for table. If width is 'half', use 6 columns,
+        // Otherwise use 12 columns. Here, each column is Bootstrap column.
+        if (item['table-width'] === 'half')
+            item['table-bootstrap-class'] = 'col-6';
+        else
+            item['table-bootstrap-class'] = 'col-12';
+
+        // Graph setup
+        if (item['graph-required'] === 'Y') {
+            if (item['graph-width'] === 'half')
+                item['graph-bootstrap-class'] = 'col-6';
+            else
+                item['graph-bootstrap-class'] = 'col-12';
+        }
+
+        console.log(item);
         items.push(item);
 
         let row = createRow(items);
