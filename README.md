@@ -23,4 +23,4 @@ It requires the following Python packages:
 - RK
 
 ## Sample
-![](postgress-demo.gif)
+![](./postgress-sample-run.gif)
