@@ -244,3 +244,124 @@ async function fetchRemoteData(link) {
     let data = await response.json();
     return data;
 }
+
+
+function createTiles(all_queries) {
+    let cardDeck = document.getElementById('dashboard-tiles');
+    let tileCount = 0;
+
+    let keys = Object.keys(queries);
+
+    keys.forEach(key => {
+        let query = queries[key];
+        let tile = createDashboardTile(key, query);
+        cardDeck.appendChild(tile);
+
+        tileCount++;
+
+        if (tileCount % 5 === 0) {
+            let w100 = document.createElement('div');
+            w100.className = 'w-100 my-2';
+            cardDeck.appendChild(w100);
+        }
+    });
+}
+
+function createDashboardTile(key, query) {
+    console.log(query);
+    let card = document.createElement('div');
+    card.className = 'card dashboard-title rounded';
+
+    // Tile Header
+    let cardHeader = document.createElement('div');
+    cardHeader.className = 'card-header';
+
+    let headerIcon = document.createElement('i');
+    let fontAwesomeIcon = icons[getRandomInt(icons.length)]
+    headerIcon.className = `fas fa-3x mb-2 ${fontAwesomeIcon}`;
+    cardHeader.appendChild(headerIcon);
+
+    // Tile Body
+    let cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+
+    let bodyTitle = document.createElement('h5');
+    bodyTitle.className = 'card-title';
+    bodyTitle.innerText = query['heading'];
+
+    let bodyText = document.createElement('p');
+    bodyText.className = 'card-text';
+    bodyText.innerText = query['caption'];
+    cardBody.append(bodyTitle, bodyText);
+
+    // Tile Footer
+    let cardFooter = document.createElement('div');
+    cardFooter.className = 'card-footer';
+
+    let footerText = document.createElement('small');
+    footerText.className = 'text-muted';
+    footerText.innerText = 'Updated 5 secs ago!';
+    cardFooter.appendChild(footerText);
+
+    card.append(cardHeader, cardBody, cardFooter);
+
+    // Add Event Listeners
+    card.addEventListener('mouseenter', (e) => {
+        e.target.style.boxShadow = '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)';
+    });
+
+    card.addEventListener('mouseleave', (e) => {
+        e.target.style.boxShadow = '';
+    });
+
+    card.addEventListener('click', (e) => {
+       let tableId = `${key}-table`;
+       document.getElementById(tableId)
+           .scrollIntoView({
+               behavior: "smooth",
+               block: "start",
+               inline: "start"}
+           );
+    });
+
+    return card;
+}
+
+function formatText(text) {
+    return text
+        .replace(/\s/g, '-')
+        .replace('(', '')
+        .replace(')', '')
+        .toLowerCase();
+}
+
+function camelCase(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function showSpinner(targetId) {
+    let button = document.createElement('button');
+    button.className = 'd-none d-sm-inline-block btn btn-sm btn-outline-light';
+    button.id = 'spinner-button';
+
+    let spinner = document.createElement('div');
+    spinner.className = 'spinner-border text-success';
+    spinner.setAttribute('role', 'status');
+
+    let span = document.createElement('span');
+    span.className = 'sr-only';
+    spinner.appendChild(span);
+
+    button.append(spinner);
+
+    document.getElementById(targetId).append(button);
+}
+
+function removeSpinner(targetId) {
+    document.getElementById(targetId).remove();
+}
+
+
+function getRandomInt(max) {
+    return Math.floor(Math.random() * Math.floor(max));
+}

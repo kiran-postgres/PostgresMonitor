@@ -1,6 +1,6 @@
 qry = dict()
 
-qry['Connections'] = {
+qry['connections'] = {
     'heading': 'Connections',
     'caption': 'Connections',
     'query': """ select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
@@ -114,8 +114,8 @@ qry['database-sizes'] = {
     'caption': 'Following table Database sizes',
     'query': """
 SELECT
-    datname,
-    pg_size_pretty(pg_database_size(datname))
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
 FROM
     pg_database
 ORDER BY
@@ -124,11 +124,11 @@ ORDER BY
     'table-width': 'half',
     'graph-width': 'half',
     'graph-required': 'Y',
-    'graph-type': 'bar-chart'
+    'graph-type': 'pie-chart'
 }
 
 
-qry['Index Bloating'] = {
+qry['index-bloating'] = {
     'heading': 'Index Bloating',
     'caption': 'Index Bloating',
     'query': """
@@ -136,8 +136,8 @@ SELECT
   nspname,
   relname,
   round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
-  pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
-  pg_size_pretty(pg_relation_size(indrelid)) AS table_size
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
 FROM pg_index I
 LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
 LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
@@ -147,12 +147,12 @@ WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
 """,
     'table-width': 'half',
     'graph-width': 'half',
-    'graph-required': 'N',
-    'graph-type': ''
+    'graph-required': 'Y',
+    'graph-type': 'bar-graph'
 }
 
 
-qry['Monitor AutoVaccum'] = {
+qry['monitor-autovaccum'] = {
     'heading': 'AutoVaccum',
     'caption': 'AutoVaccum',
     'query': """
@@ -164,9 +164,9 @@ SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tabl
     'graph-type': ''
 }
 
-qry['Candidates For AutoVaccum'] = {
-    'heading': 'AutoVaccum',
-    'caption': 'AutoVaccum',
+qry['candidates-for-autovaccum'] = {
+    'heading': 'Candidates for Auto Vaccum',
+    'caption': 'Candidates for Auto Vaccum',
     'query': """
 SELECT *,
   n_dead_tup > av_threshold AS "av_needed",
@@ -196,55 +196,32 @@ AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
     ) AS av
 ORDER BY av_needed DESC,n_dead_tup DESC
 """,
-    'table-width': 'half',
+    'table-width': 'full',
     'graph-width': 'half',
     'graph-required': 'N',
     'graph-type': ''
 }
 
-qry['Killing Active Sessions'] = {
-    'heading': 'AutoVaccum',
-    'caption': 'AutoVaccum',
-    'query': """
-SELECT pg_cancel_backend(procpid);
-""",
-    'table-width': 'half',
-    'graph-width': 'half',
-    'graph-required': 'N',
-    'graph-type': ''
-}
-qry['Time consuming Queries'] = {
+qry['time-consuming-queries'] = {
     'heading': 'Time consuming Queries',
     'caption': 'Time consuming Queries',
     'query': """
 SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
 """,
-    'table-width': 'half',
-    'graph-width': 'half',
-    'graph-required': 'N',
-    'graph-type': ''
+    'table-width': 'full',
+    'graph-width': 'full',
+    'graph-required': 'Y',
+    'graph-type': 'bar-graph'
 }
 
-qry['CPU Intensive'] = {
-    'heading': 'CPU',
-    'caption': 'CPU',
+qry['cpu-intensive-queries'] = {
+    'heading': 'CPU Intensive Queries',
+    'caption': '',
     'query': """
 SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
 """,
-    'table-width': 'half',
-    'graph-width': 'half',
-    'graph-required': 'N',
-    'graph-type': ''
-}
-
-qry['Connections'] = {
-    'heading': 'Connections',
-    'caption': 'Connections',
-    'query': """
-select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc
-""",
-    'table-width': 'half',
-    'graph-width': 'half',
-    'graph-required': 'N',
-    'graph-type': ''
+    'table-width': 'full',
+    'graph-width': 'full',
+    'graph-required': 'Y',
+    'graph-type': 'bar-graph'
 }

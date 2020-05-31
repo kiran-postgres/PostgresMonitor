@@ -103,7 +103,9 @@ def get_query_map():
     config_data = dict()
 
     for key in qry.keys():
-        config_data[key] = {
+        formatted_key = key.replace(' ', '-').lower().strip()
+
+        config_data[formatted_key] = {
             'heading': qry[key]['heading'],
             'caption': qry[key]['caption'],
             'table-width': qry[key]['table-width'],

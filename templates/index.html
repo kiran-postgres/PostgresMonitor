@@ -5,8 +5,9 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <!--    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.1/css/all.css"-->
-    <!--          integrity="sha384-v8BU367qNbs/aIZIxuivaU55N5GPF89WBerHoGA4QTcbUjYiLQtKdrfXnqAcXyTv" crossorigin="anonymous">-->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.1/css/all.css"
+          integrity="sha384-v8BU367qNbs/aIZIxuivaU55N5GPF89WBerHoGA4QTcbUjYiLQtKdrfXnqAcXyTv" crossorigin="anonymous">
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
           integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <link rel="stylesheet"
@@ -81,26 +82,37 @@
         }
 
         .card-header {
-            border-left: 4px solid #b00020;
-            background: white;
-            color: #b00020;
-            font-family: 'Amiri', serif;
-        }
-
-        .card .card .card-header {
             border-left: 4px solid green;
             background: white;
             color: green;
             font-family: 'Amiri', serif;
         }
 
+        .card .card .card-header {
+            border-left: 4px solid green;
+            background: whitesmoke;
+            color: green;
+            font-family: 'Amiri', serif;
+        }
+
+        /*Show hand symbol when cursor is placed on Dashboard tile*/
+        .dashboard-title {
+            cursor: pointer;
+        }
+
+        /*.fas {*/
+        /*    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);*/
+        /*}*/
+
         /*
-       .card {
-            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
-        }*/
+       .dashboard-title {
+           box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
+       }
+       */
 
         thead {
-            background: #727BD8;
+            /*background: #727BD8;*/
+            background: #4066CB;
             color: white;
         }
 
@@ -110,61 +122,17 @@
 <body>
 
 <main role="main">
-    <div class="jumbotron">
+    <div class="jumbotron" style="background-color: steelblue; color: whitesmoke">
         <div class="container">
             <h1 class="display-3" style="font-family: Crimson Text">PostgresMonitor</h1>
         </div>
     </div>
 
     <div class="jumbotron">
-        <div class="card-deck">
-            <div class="card">
-                <img src="https://source.unsplash.com/random/299x199" class="card-img-top" alt="...">
-                <div class="card-body">
-                    <h5 class="card-title">Storage</h5>
-                    <p class="card-text">This section shows storage related data. It includes Database, Table sizes, Allocation, Usage, Free space, etc.</p>
-                </div>
-                <div class="card-footer">
-                    <small class="text-muted">Last updated 3 mins ago</small>
-                </div>
-            </div>
-            <div class="card">
-                <img src="https://source.unsplash.com/random/299x199" class="card-img-top" alt="...">
-                <div class="card-body">
-                    <h5 class="card-title">Current State</h5>
-                    <p class="card-text">Shows Currently running Queries, </p>
-                </div>
-                <div class="card-footer">
-                    <small class="text-muted">Last updated 3 mins ago</small>
-                </div>
-            </div>
-            <div class="card">
-                <img src="https://source.unsplash.com/random/300x200" class="card-img-top" alt="...">
-                <div class="card-body">
-                    <h5 class="card-title">Card title</h5>
-                    <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
-                        additional
-                        content. This card has even longer content than the first to show that equal height action.</p>
-                </div>
-                <div class="card-footer">
-                    <small class="text-muted">Last updated 3 mins ago</small>
-                </div>
-            </div>
-            <div class="card">
-                <img src="https://source.unsplash.com/random/300x200" class="card-img-top" alt="...">
-                <div class="card-body">
-                    <h5 class="card-title">Card title</h5>
-                    <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
-                        additional
-                        content. This card has even longer content than the first to show that equal height action.</p>
-                </div>
-                <div class="card-footer">
-                    <small class="text-muted">Last updated 3 mins ago</small>
-                </div>
-            </div>
+        <div class="card-deck" id="dashboard-tiles">
+
         </div>
     </div>
-
 </main>
 
 <section>
@@ -263,6 +231,19 @@
 <script>
     // Get the Current year for the Copyright
     $('#year').text(new Date().getFullYear());
+
+    /*
+    // Add Shadows to Dashboard tiles on entering;
+    document.querySelectorAll('.dashboard-title').forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+            e.target.style.boxShadow = '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)';
+        });
+
+        card.addEventListener('mouseleave', (e) => {
+            e.target.style.boxShadow = '';
+        });
+    });
+    */
 </script>
 
 <script src="../static/js/common.js"></script>

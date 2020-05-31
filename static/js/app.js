@@ -3,10 +3,21 @@ let query_map_link = webServer + '/get_query_map';
 let queryExecutionLink = 'http://localhost:5000/query_execution/';
 let queries = {};
 
+let icons = [
+    'fa-memory',
+    'fa-database',
+    'fa-bell',
+    'fa-camera',
+    'fa-clipboard',
+    'fa-cloud',
+];
+
 // On Page loading, retrieve the list of queries to be executed and rendered.
 window.addEventListener('DOMContentLoaded', (event) => {
     fetchRemoteData(query_map_link).then((data) => {
         queries = data;
+
+        createTiles(queries);
 
         // When a query executes, its results will be rendered in tabular format. This step
         // Creates the place holders / IDs for the table. For each query, there will be a table.
@@ -18,6 +29,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
         executeQueries(queries);
     }).catch(e => {
         console.log('Unable to extract queries to be executed from: ' + query_map_link);
+        console.error(e);
     });
 });
 
@@ -63,61 +75,61 @@ function generatePlaceHolders(queries) {
 
 document.getElementById('query-execute-submit-btn')
     .addEventListener('click', (e) => {
-    e.preventDefault();
-    let sqlText = document.getElementById('query-to-execute').value;
-    let url = `${webServer}/execute_custom_sql`;
+        e.preventDefault();
+        let sqlText = document.getElementById('query-to-execute').value;
+        let url = `${webServer}/execute_custom_sql`;
 
-    let footer = document.getElementById('query-execute-footer');
-    let footerText = document.getElementById('query-execute-footer-text');
+        let footer = document.getElementById('query-execute-footer');
+        let footerText = document.getElementById('query-execute-footer-text');
 
-    document.getElementById('query-to-execute').innerHTML =
-        '<pre class="prettyprint"><code class="language-sql">' + sqlText + '</code></pre>';
+        document.getElementById('query-to-execute').innerHTML =
+            '<pre class="prettyprint"><code class="language-sql">' + sqlText + '</code></pre>';
 
-    let payload = {};
-    payload['query'] = sqlText;
+        let payload = {};
+        payload['query'] = sqlText;
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify(payload));
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify(payload));
 
-    xhr.onload = function () {
-        if (this.status === 201) {
-            const response = JSON.parse(this.responseText);
+        xhr.onload = function () {
+            if (this.status === 201) {
+                const response = JSON.parse(this.responseText);
 
-            if (response.status === 'success') {
-                let jsonData = response.data;
-                let tableId = 'query-results-table';
+                if (response.status === 'success') {
+                    let jsonData = response.data;
+                    let tableId = 'query-results-table';
 
-                while (document.getElementById(`${tableId}`).children.length > 0)
-                    document.getElementById(`${tableId}`).firstChild.remove();
+                    while (document.getElementById(`${tableId}`).children.length > 0)
+                        document.getElementById(`${tableId}`).firstChild.remove();
 
-                let table = createTable(jsonData.columns, jsonData.records, tableId + '-temp');
-                document.getElementById(`${tableId}`).appendChild(table);
+                    let table = createTable(jsonData.columns, jsonData.records, tableId + '-temp');
+                    document.getElementById(`${tableId}`).appendChild(table);
 
-                $(`#${tableId}-temp`).DataTable({
-                    responsive: true,
-                    "pageLength": 10
-                });
+                    $(`#${tableId}-temp`).DataTable({
+                        responsive: true,
+                        "pageLength": 10
+                    });
 
-                PR.prettyPrint();
+                    PR.prettyPrint();
 
-                $('#coll-1').collapse('hide');
-                $('#coll-2').collapse('show');
-            }
+                    $('#coll-1').collapse('hide');
+                    $('#coll-2').collapse('show');
+                }
 
-            if (response.status !== 'success') {
-                let errorMessage = `There is a problem executing Query.\n`;
-                footerText.innerText = errorMessage + response.data;
+                if (response.status !== 'success') {
+                    let errorMessage = `There is a problem executing Query.\n`;
+                    footerText.innerText = errorMessage + response.data;
+                    footer.className = 'card-footer alert alert-danger alert-dismissible';
+                    clearFooter('query-execute-footer', 'query-execute-footer-text');
+                }
+            } else {
+                footerText.innerText = 'Unable to fetch data from: ' + `${webServer}/execute_custom_sql`;
                 footer.className = 'card-footer alert alert-danger alert-dismissible';
                 clearFooter('query-execute-footer', 'query-execute-footer-text');
             }
-        } else {
-            footerText.innerText = 'Unable to fetch data from: ' + `${webServer}/execute_custom_sql`;
-            footer.className = 'card-footer alert alert-danger alert-dismissible';
-            clearFooter('query-execute-footer', 'query-execute-footer-text');
-        }
-    };
-});
+        };
+    });
 
 
