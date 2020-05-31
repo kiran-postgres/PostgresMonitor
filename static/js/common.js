@@ -51,6 +51,8 @@ function createRow(item) {
 }
 
 /**
+ * Creates a Bootstrap Card element to place Table data. It is also used to create a Card
+ * for Graphs too. The 'type' parameter determines this.
  *
  * @param queryId - Unique ID of the query that will be executed. This comes from
  *                  backend.
@@ -75,8 +77,15 @@ function createCard(queryId, type, heading, captionText, cardWidth) {
 
     let h3 = document.createElement('h3');
     h3.innerText = heading;
-
     icons.appendChild(h3);
+
+    // Create Auto Refresh Button
+    // Only tables have this option. Graphs need not have.
+    if (type === 'table') {
+        let form = createRefreshButton(queryId, `${queryId}-refresh-value`, `${queryId}-refresh-btn`);
+        icons.appendChild(form);
+    }
+
     cardHeader.appendChild(icons);
 
     // Card body
@@ -115,6 +124,8 @@ function executeQueries(queries) {
 }
 
 function executeQuery(queryId, parameters, link = null, dataTableDisplayFlag = true) {
+    console.log(`Executing Query for ${queryId} @ ${new Date()}`);
+
     if (link === null)
         link = queryExecutionLink + queryId + parameters;
 
@@ -315,13 +326,14 @@ function createDashboardTile(key, query) {
     });
 
     card.addEventListener('click', (e) => {
-       let tableId = `${key}-table`;
-       document.getElementById(tableId)
-           .scrollIntoView({
-               behavior: "smooth",
-               block: "start",
-               inline: "start"}
-           );
+        let tableId = `${key}-table`;
+        document.getElementById(tableId)
+            .scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                    inline: "start"
+                }
+            );
     });
 
     return card;
@@ -364,4 +376,44 @@ function removeSpinner(targetId) {
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
+}
+
+
+function createRefreshButton(queryId, autoRefreshTimeId, autoRefreshButtonId) {
+    let form = document.createElement('form');
+    form.className = 'form-inline ml-auto';
+
+    let input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'form-control mr-2';
+    input.placeholder = 'Enter Refresh time in secs';
+    input.id = autoRefreshTimeId;
+
+    let button = document.createElement('btn');
+    button.className = 'btn btn-outline-primary';
+    button.id = autoRefreshButtonId;
+    button.innerText = 'Set Auto Refresh time';
+    button.setAttribute('query-id', queryId);
+
+    button.addEventListener('click', enableAutoRefreshOption);
+    form.append(input, button);
+    return form;
+}
+
+function enableAutoRefreshOption(e) {
+    let queryId = e.target.getAttribute('query-id');
+
+    // Fetch Auto Refresh time from Input Box
+    let autoRefreshTime = document.getElementById(`${queryId}-refresh-value`).value;
+    autoRefreshTime = parseInt(autoRefreshTime);
+
+    // Set minimum 1 minute
+    if (autoRefreshTime < 60) {
+        autoRefreshTime = 60;
+    }
+
+    autoRefreshTime = autoRefreshTime * 1000;      // 1 sec = 1000 ms
+
+    console.log(`Setting Auto Refrehs for ${queryId} to ${autoRefreshTime} secs`);
+    window.setInterval(() => executeQuery(queryId, ''), autoRefreshTime);
 }

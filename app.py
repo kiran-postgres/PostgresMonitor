@@ -16,37 +16,53 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 app.config.from_object('settings')
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'images')
 
-# Logging
-handler = RotatingFileHandler('postgress-monitoring.log', maxBytes=10000, backupCount=5)
-handler.setLevel(logging.DEBUG)
-app.logger.addHandler(handler)
+# Setup logging
+logfile_location = 'logs/web-application-log.log'
+log_level = logging.DEBUG
+log_format = '%(asctime)s %(levelname)s: %(message)s [in %(filename)s:%(lineno)d]'
+
+logger = logging.getLogger()
+handler = RotatingFileHandler(logfile_location, maxBytes=100000, backupCount=10)
+formatter = logging.Formatter(log_format)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(log_level)
 
 # Holds queries
 query = dict()
 
 
-# noinspection PyBroadException
-def get_db_connection():
-    username = app.config['USERNAME']
-    password = app.config['PASSWORD']
-    endpoint = app.config['ENDPOINT']
-    db = app.config['DB']
-    port = app.config['PORT']
+class DBConnection:
+    db_connection = None
 
-    try:
-        db_connection = psycopg2.connect(host=endpoint, user=username, password=password,
-                                         dbname=db, port=port)
-    except Exception as err:
-        app.logger.error('Unable to get a DB connection to {}'.format(endpoint))
-        sys.exit(1)
+    # noinspection PyBroadException
+    @staticmethod
+    def get_db_connection():
+        username = app.config['USERNAME']
+        password = app.config['PASSWORD']
+        endpoint = app.config['ENDPOINT']
+        db = app.config['DB']
+        port = app.config['PORT']
 
-    print('DB Connection acquired!')
-    return db_connection
+        if DBConnection.db_connection is not None:
+            return DBConnection.db_connection
+
+        try:
+            print('DB Connection', DBConnection.db_connection)
+            DBConnection.db_connection = psycopg2.connect(host=endpoint, user=username, password=password,
+                                             dbname=db, port=port)
+            print('DB Connection acquired!')
+        except Exception as err:
+            app.logger.error('Unable to get a DB connection to {}'.format(endpoint))
+            sys.exit(1)
+
+        return DBConnection.db_connection
 
 
 # noinspection PyBroadException
 def execute_query(query, parameters):
-    connection = get_db_connection()
+    connection = DBConnection.get_db_connection()
+    print(connection)
     app.logger.debug('Query to be executed:')
     app.logger.debug(query)
 

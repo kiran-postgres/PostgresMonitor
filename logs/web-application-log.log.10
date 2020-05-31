@@ -1,0 +1,1986 @@
+2020-05-31 20:33:35,282 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:33:35,819 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:33:35,829 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:33:35,842 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:33:44,314 INFO: 127.0.0.1 - - [31/May/2020 20:33:44] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:44,589 INFO: 127.0.0.1 - - [31/May/2020 20:33:44] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:44,905 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:44,905 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,906 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:44,909 DEBUG: Query parameters for connections [in app.py:152]
+2020-05-31 20:33:44,909 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,910 DEBUG: Query parameters for cpu-intensive-queries [in app.py:152]
+2020-05-31 20:33:44,911 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:44,911 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,913 DEBUG: Query parameters for database-sizes [in app.py:152]
+2020-05-31 20:33:44,914 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:44,914 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,915 DEBUG: Query parameters for get-indexes [in app.py:152]
+2020-05-31 20:33:44,918 DEBUG: Query parameters for index-bloating [in app.py:152]
+2020-05-31 20:33:44,919 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,919 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:44,918 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:44,919 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:44,920 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:46,488 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,488 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:62]
+2020-05-31 20:33:46,491 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,491 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:33:46,493 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,493 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:62]
+2020-05-31 20:33:46,494 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,494 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:62]
+2020-05-31 20:33:46,495 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,495 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:62]
+2020-05-31 20:33:46,496 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:46,496 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:33:47,033 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,043 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,046 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,049 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,051 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,059 INFO: 127.0.0.1 - - [31/May/2020 20:33:47] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:47,340 DEBUG: Query parameters for monitor-autovaccum [in app.py:152]
+2020-05-31 20:33:47,340 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:47,340 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:47,351 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:152]
+2020-05-31 20:33:47,352 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:47,353 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:47,354 DEBUG: Query parameters for running-queries [in app.py:152]
+2020-05-31 20:33:47,355 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:47,356 DEBUG: Query parameters for table-sizes [in app.py:152]
+2020-05-31 20:33:47,358 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:47,358 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:47,358 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:47,361 DEBUG: Query parameters for time-consuming-queries [in app.py:152]
+2020-05-31 20:33:47,361 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:47,362 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:48,895 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:48,895 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:62]
+2020-05-31 20:33:48,897 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:48,898 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:62]
+2020-05-31 20:33:48,898 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:48,899 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:62]
+2020-05-31 20:33:48,899 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:48,899 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:33:48,902 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:33:48,902 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:62]
+2020-05-31 20:33:49,412 INFO: 127.0.0.1 - - [31/May/2020 20:33:49] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:49,414 INFO: 127.0.0.1 - - [31/May/2020 20:33:49] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:49,418 INFO: 127.0.0.1 - - [31/May/2020 20:33:49] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:49,420 INFO: 127.0.0.1 - - [31/May/2020 20:33:49] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:49,423 INFO: 127.0.0.1 - - [31/May/2020 20:33:49] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:33:59,296 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,297 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,297 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:59,316 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,317 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,317 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:59,335 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,335 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,335 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:59,356 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,356 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,357 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:59,375 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,377 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,377 DEBUG: [] [in app.py:154]
+2020-05-31 20:33:59,397 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:33:59,397 DEBUG: [] [in app.py:153]
+2020-05-31 20:33:59,397 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:00,844 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,844 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:00,847 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,847 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:00,860 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,861 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:00,886 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,887 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:00,901 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,901 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:00,939 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:00,940 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:01,361 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,368 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,371 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,413 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,416 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,470 INFO: 127.0.0.1 - - [31/May/2020 20:34:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:01,667 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,669 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,669 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:01,674 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,674 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,674 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:01,678 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,678 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,678 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:01,723 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,728 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,731 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:01,733 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,737 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,737 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:01,778 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:01,779 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:01,779 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:03,200 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,200 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,204 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,204 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,205 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,205 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,279 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,279 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,282 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,283 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,315 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:03,315 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:03,716 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:03,720 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:03,728 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:03,791 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:03,796 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:03,824 INFO: 127.0.0.1 - - [31/May/2020 20:34:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:04,024 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,024 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,025 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:04,029 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,030 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,030 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:04,036 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,037 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,037 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:04,098 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,099 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,099 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:04,104 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,104 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,104 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:04,133 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:04,133 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:04,134 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:05,588 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,588 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:05,599 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,600 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:05,612 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,612 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:05,658 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,658 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:05,670 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,670 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:05,687 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:05,687 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:06,110 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,127 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,142 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,215 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,219 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,229 INFO: 127.0.0.1 - - [31/May/2020 20:34:06] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:06,417 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,417 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,417 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:06,433 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,433 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,434 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:06,449 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,449 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,449 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:06,526 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,526 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,526 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:06,529 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,529 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,530 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:06,535 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:06,535 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:06,535 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:07,987 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:07,988 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:07,990 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:07,991 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:08,017 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:08,017 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:08,073 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:08,073 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:08,076 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:08,076 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:08,081 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:08,082 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:08,506 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,523 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,535 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,584 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,594 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,599 INFO: 127.0.0.1 - - [31/May/2020 20:34:08] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:08,814 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,815 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,815 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:08,829 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,829 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,829 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:08,842 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,842 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,842 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:08,891 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,891 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,892 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:08,901 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,901 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,902 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:08,906 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:08,906 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:08,907 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:10,371 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,372 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,379 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,379 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,385 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,385 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,424 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,425 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,434 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,434 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,451 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:10,451 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:10,890 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:10,899 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:10,902 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:10,935 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:10,942 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:10,966 INFO: 127.0.0.1 - - [31/May/2020 20:34:10] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:11,198 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,198 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,198 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:11,206 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,206 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,206 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:11,209 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,209 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,209 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:11,242 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,242 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,242 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:11,250 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,250 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,251 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:11,273 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:11,274 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:11,274 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:12,737 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,737 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:12,741 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,742 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:12,747 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,748 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:12,795 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,796 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:12,800 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,800 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:12,815 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:12,815 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:13,252 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,255 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,257 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,311 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,317 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,329 INFO: 127.0.0.1 - - [31/May/2020 20:34:13] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:13,559 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,560 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,560 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:13,561 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,561 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,561 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:13,563 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,563 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,563 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:13,619 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,619 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,619 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:13,625 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,625 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,625 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:13,635 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:13,636 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:13,636 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:15,193 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,194 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,203 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,204 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,220 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,220 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,223 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,223 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,228 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,229 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,234 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:15,234 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:15,713 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:15,718 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:15,728 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:15,733 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:15,739 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:15,748 INFO: 127.0.0.1 - - [31/May/2020 20:34:15] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:16,020 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,020 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,021 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:16,024 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,024 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,025 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:16,034 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,034 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,034 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:16,038 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,038 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,038 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:16,054 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,056 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:16,056 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,056 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:16,057 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:16,057 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:17,571 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,571 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:17,572 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,573 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:17,573 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,573 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:17,574 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,574 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:17,615 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,615 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:17,616 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:17,616 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:18,092 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,094 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,098 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,102 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,129 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,133 INFO: 127.0.0.1 - - [31/May/2020 20:34:18] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:34:18,401 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,401 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,401 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:18,403 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,404 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,404 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:18,406 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,406 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,407 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:18,409 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,410 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,410 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:18,434 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,435 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,435 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:18,438 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:34:18,438 DEBUG: [] [in app.py:153]
+2020-05-31 20:34:18,438 DEBUG: [] [in app.py:154]
+2020-05-31 20:34:19,953 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,953 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:19,959 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,959 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:19,969 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,969 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:19,974 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,974 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:19,978 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,979 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:34:19,981 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:34:20,809 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]

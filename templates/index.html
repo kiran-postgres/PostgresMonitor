@@ -49,22 +49,9 @@
             overflow-x: auto;
         }
 
-        .card-header#card-heading-1 .icons {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .card-header#card-heading-2 .icons {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .card-header#card-heading-3 .icons {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .card-header#card-heading-4 .icons {
+        /* Children of 'icons' class in 'card-header' are separated with Spaces. Needed this,
+           so that, Icons, buttons will be at the right in the header.*/
+        .card-header .icons {
             display: flex;
             justify-content: space-between;
         }
@@ -84,16 +71,20 @@
         .card-header {
             border-left: 4px solid green;
             background: white;
-            color: green;
+            color: #3598C5;
             font-family: 'Amiri', serif;
         }
 
-        .card .card .card-header {
-            border-left: 4px solid green;
-            background: whitesmoke;
-            color: green;
-            font-family: 'Amiri', serif;
+        h3 {
+            color: crimson;
         }
+
+        /*.card .card .card-header {*/
+        /*    border-left: 4px solid green;*/
+        /*    background: whitesmoke;*/
+        /*    color: green;*/
+        /*    font-family: 'Amiri', serif;*/
+        /*}*/
 
         /*Show hand symbol when cursor is placed on Dashboard tile*/
         .dashboard-title {
@@ -110,9 +101,9 @@
        }
        */
 
+        /*Table header*/
         thead {
-            /*background: #727BD8;*/
-            background: #4066CB;
+            background: #3598C5;
             color: white;
         }
 

@@ -1,0 +1,1899 @@
+2020-05-31 20:38:06,566 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:38:07,130 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:38:07,135 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:38:07,147 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:40:14,653 INFO: 127.0.0.1 - - [31/May/2020 20:40:14] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:14,799 INFO: 127.0.0.1 - - [31/May/2020 20:40:14] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:14,915 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:40:14,916 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:14,916 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:15,221 DEBUG: Query parameters for connections [in app.py:152]
+2020-05-31 20:40:15,221 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:15,222 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:15,225 DEBUG: Query parameters for cpu-intensive-queries [in app.py:152]
+2020-05-31 20:40:15,226 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:15,228 DEBUG: Query parameters for database-sizes [in app.py:152]
+2020-05-31 20:40:15,228 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:15,229 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:15,230 DEBUG: Query parameters for get-indexes [in app.py:152]
+2020-05-31 20:40:15,233 DEBUG: Query parameters for index-bloating [in app.py:152]
+2020-05-31 20:40:15,233 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:15,234 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:15,235 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:15,234 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:15,236 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:16,527 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,527 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:40:16,746 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,746 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:62]
+2020-05-31 20:40:16,768 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,768 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:62]
+2020-05-31 20:40:16,776 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,777 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:62]
+2020-05-31 20:40:16,790 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,790 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:62]
+2020-05-31 20:40:16,805 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:16,805 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:17,053 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,253 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,277 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,289 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,301 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,315 INFO: 127.0.0.1 - - [31/May/2020 20:40:17] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:17,360 DEBUG: Query parameters for monitor-autovaccum [in app.py:152]
+2020-05-31 20:40:17,360 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:17,361 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:17,560 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:152]
+2020-05-31 20:40:17,560 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:17,560 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:17,583 DEBUG: Query parameters for running-queries [in app.py:152]
+2020-05-31 20:40:17,583 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:17,584 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:17,593 DEBUG: Query parameters for table-sizes [in app.py:152]
+2020-05-31 20:40:17,594 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:17,594 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:17,606 DEBUG: Query parameters for time-consuming-queries [in app.py:152]
+2020-05-31 20:40:17,606 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:17,606 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:18,746 INFO: 127.0.0.1 - - [31/May/2020 20:40:18] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:18,891 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:18,891 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:62]
+2020-05-31 20:40:19,100 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:19,100 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:62]
+2020-05-31 20:40:19,106 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:19,107 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:19,108 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:62]
+2020-05-31 20:40:19,120 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:19,120 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:62]
+2020-05-31 20:40:19,142 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:19,142 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:19,351 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:40:19,352 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,352 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,411 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:19,426 DEBUG: Query parameters for connections [in app.py:152]
+2020-05-31 20:40:19,426 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,427 DEBUG: Query parameters for cpu-intensive-queries [in app.py:152]
+2020-05-31 20:40:19,428 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,428 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,429 DEBUG: Query parameters for database-sizes [in app.py:152]
+2020-05-31 20:40:19,431 DEBUG: Query parameters for get-indexes [in app.py:152]
+2020-05-31 20:40:19,432 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,433 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,435 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,435 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,434 DEBUG: Query parameters for index-bloating [in app.py:152]
+2020-05-31 20:40:19,436 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:19,436 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,437 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:19,611 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:19,615 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:19,633 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:19,654 INFO: 127.0.0.1 - - [31/May/2020 20:40:19] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:20,904 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:20,905 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:40:20,982 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:20,983 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:20,988 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:20,989 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:62]
+2020-05-31 20:40:20,997 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:20,998 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:62]
+2020-05-31 20:40:20,999 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:20,999 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:62]
+2020-05-31 20:40:21,005 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:21,005 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:62]
+2020-05-31 20:40:21,433 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,499 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,508 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,511 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,518 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,522 INFO: 127.0.0.1 - - [31/May/2020 20:40:21] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:21,739 DEBUG: Query parameters for monitor-autovaccum [in app.py:152]
+2020-05-31 20:40:21,740 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:21,740 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:21,804 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:152]
+2020-05-31 20:40:21,804 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:21,804 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:21,815 DEBUG: Query parameters for running-queries [in app.py:152]
+2020-05-31 20:40:21,815 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:21,816 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:21,818 DEBUG: Query parameters for table-sizes [in app.py:152]
+2020-05-31 20:40:21,818 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:21,818 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:21,824 DEBUG: Query parameters for time-consuming-queries [in app.py:152]
+2020-05-31 20:40:21,825 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:21,825 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:23,308 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:23,308 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:62]
+2020-05-31 20:40:23,330 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:23,330 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:62]
+2020-05-31 20:40:23,352 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:23,353 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:62]
+2020-05-31 20:40:23,356 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:23,357 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:62]
+2020-05-31 20:40:23,361 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,364 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:23,364 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:23,719 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /static/js/common.js HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,720 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /static/js/app.js HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,721 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /static/js/charts.js HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,836 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,847 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,862 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,873 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:23,879 INFO: 127.0.0.1 - - [31/May/2020 20:40:23] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:24,347 INFO: 127.0.0.1 - - [31/May/2020 20:40:24] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:24,680 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:40:24,682 DEBUG: Query parameters for connections [in app.py:152]
+2020-05-31 20:40:24,682 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,684 DEBUG: Query parameters for cpu-intensive-queries [in app.py:152]
+2020-05-31 20:40:24,685 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,685 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:24,687 DEBUG: Query parameters for database-sizes [in app.py:152]
+2020-05-31 20:40:24,687 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,693 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:24,690 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:24,693 DEBUG: Query parameters for index-bloating [in app.py:152]
+2020-05-31 20:40:24,693 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,690 DEBUG: Query parameters for get-indexes [in app.py:152]
+2020-05-31 20:40:24,695 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,695 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:24,695 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:24,696 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:24,698 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:26,220 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,221 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:40:26,229 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,229 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:26,233 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,233 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:62]
+2020-05-31 20:40:26,236 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,237 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:62]
+2020-05-31 20:40:26,238 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,238 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:62]
+2020-05-31 20:40:26,245 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:26,245 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:62]
+2020-05-31 20:40:26,744 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:26,751 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:26,753 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:26,757 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:26,759 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:26,767 INFO: 127.0.0.1 - - [31/May/2020 20:40:26] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:27,051 DEBUG: Query parameters for monitor-autovaccum [in app.py:152]
+2020-05-31 20:40:27,051 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:27,051 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:27,063 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:152]
+2020-05-31 20:40:27,063 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:27,064 DEBUG: Query parameters for running-queries [in app.py:152]
+2020-05-31 20:40:27,064 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:27,066 DEBUG: Query parameters for table-sizes [in app.py:152]
+2020-05-31 20:40:27,068 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:27,066 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:27,068 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:27,069 DEBUG: Query parameters for time-consuming-queries [in app.py:152]
+2020-05-31 20:40:27,070 DEBUG: [] [in app.py:153]
+2020-05-31 20:40:27,070 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:27,070 DEBUG: [] [in app.py:154]
+2020-05-31 20:40:27,073 INFO: 127.0.0.1 - - [31/May/2020 20:40:27] "GET /favicon.ico HTTP/1.1" 404 - [in _internal.py:122]
+2020-05-31 20:40:28,643 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:28,643 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:62]
+2020-05-31 20:40:28,646 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:28,646 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:62]
+2020-05-31 20:40:28,651 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:28,652 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:62]
+2020-05-31 20:40:28,656 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:28,657 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:62]
+2020-05-31 20:40:28,661 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:40:28,662 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:62]
+2020-05-31 20:40:29,152 INFO: 127.0.0.1 - - [31/May/2020 20:40:29] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:29,158 INFO: 127.0.0.1 - - [31/May/2020 20:40:29] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:29,167 INFO: 127.0.0.1 - - [31/May/2020 20:40:29] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:29,177 INFO: 127.0.0.1 - - [31/May/2020 20:40:29] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:40:29,179 INFO: 127.0.0.1 - - [31/May/2020 20:40:29] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:41:47,403 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:41:47,404 DEBUG: [] [in app.py:153]
+2020-05-31 20:41:47,404 DEBUG: [] [in app.py:154]
+2020-05-31 20:41:49,002 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:41:49,002 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:41:49,527 INFO: 127.0.0.1 - - [31/May/2020 20:41:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:42:47,399 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:42:47,399 DEBUG: [] [in app.py:153]
+2020-05-31 20:42:47,399 DEBUG: [] [in app.py:154]
+2020-05-31 20:42:48,967 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:42:48,968 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:42:49,508 INFO: 127.0.0.1 - - [31/May/2020 20:42:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:43:47,398 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:43:47,398 DEBUG: [] [in app.py:153]
+2020-05-31 20:43:47,399 DEBUG: [] [in app.py:154]
+2020-05-31 20:43:49,014 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:43:49,015 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:43:49,540 INFO: 127.0.0.1 - - [31/May/2020 20:43:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:44:47,399 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:152]
+2020-05-31 20:44:47,399 DEBUG: [] [in app.py:153]
+2020-05-31 20:44:47,399 DEBUG: [] [in app.py:154]
+2020-05-31 20:44:48,955 DEBUG: Query to be executed: [in app.py:61]
+2020-05-31 20:44:48,956 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:62]
+2020-05-31 20:44:49,474 INFO: 127.0.0.1 - - [31/May/2020 20:44:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:45:37,236 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:45:37,281 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:45:38,225 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:45:38,238 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:45:38,260 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:45:45,580 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:45:45,626 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:45:46,525 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:45:46,536 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:45:46,556 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:45:47,400 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:148]
+2020-05-31 20:45:47,400 DEBUG: [] [in app.py:149]
+2020-05-31 20:45:47,400 DEBUG: [] [in app.py:150]
+2020-05-31 20:45:48,985 DEBUG: Query to be executed: [in app.py:57]
+2020-05-31 20:45:48,985 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:58]
+2020-05-31 20:45:49,506 INFO: 127.0.0.1 - - [31/May/2020 20:45:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:46:47,399 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:148]
+2020-05-31 20:46:47,400 DEBUG: [] [in app.py:149]
+2020-05-31 20:46:47,400 DEBUG: [] [in app.py:150]
+2020-05-31 20:46:49,039 DEBUG: Query to be executed: [in app.py:57]
+2020-05-31 20:46:49,039 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:58]
+2020-05-31 20:46:49,563 INFO: 127.0.0.1 - - [31/May/2020 20:46:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:47:47,398 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:148]
+2020-05-31 20:47:47,398 DEBUG: [] [in app.py:149]
+2020-05-31 20:47:47,398 DEBUG: [] [in app.py:150]
+2020-05-31 20:47:48,947 DEBUG: Query to be executed: [in app.py:57]
+2020-05-31 20:47:48,948 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:58]
+2020-05-31 20:47:49,467 INFO: 127.0.0.1 - - [31/May/2020 20:47:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:48:06,967 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:48:07,014 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:48:07,688 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:48:07,693 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:48:07,707 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:48:47,400 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:154]
+2020-05-31 20:48:47,400 DEBUG: [] [in app.py:155]
+2020-05-31 20:48:47,400 DEBUG: [] [in app.py:156]
+2020-05-31 20:48:48,994 DEBUG: Query to be executed: [in app.py:63]
+2020-05-31 20:48:48,995 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:64]
+2020-05-31 20:48:49,517 INFO: 127.0.0.1 - - [31/May/2020 20:48:49] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:49:34,615 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:49:34,666 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:52:16,007 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:52:16,530 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:52:16,535 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:52:16,546 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:52:22,310 INFO: 127.0.0.1 - - [31/May/2020 20:52:22] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:22,440 INFO: 127.0.0.1 - - [31/May/2020 20:52:22] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:22,544 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:155]
+2020-05-31 20:52:22,544 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,545 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:22,773 DEBUG: Query parameters for connections [in app.py:155]
+2020-05-31 20:52:22,774 DEBUG: Query parameters for database-sizes [in app.py:155]
+2020-05-31 20:52:22,776 DEBUG: Query parameters for cpu-intensive-queries [in app.py:155]
+2020-05-31 20:52:22,779 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,778 DEBUG: Query parameters for get-indexes [in app.py:155]
+2020-05-31 20:52:22,778 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,776 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,779 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:22,780 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,781 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:22,782 DEBUG: Query parameters for index-bloating [in app.py:155]
+2020-05-31 20:52:22,783 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:22,784 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:22,785 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:22,786 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:24,130 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,130 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:65]
+2020-05-31 20:52:24,327 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,327 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:65]
+2020-05-31 20:52:24,334 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,335 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:65]
+2020-05-31 20:52:24,345 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,346 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:65]
+2020-05-31 20:52:24,353 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,353 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:65]
+2020-05-31 20:52:24,365 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:24,365 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:65]
+2020-05-31 20:52:24,654 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,833 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,844 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,857 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,864 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,880 INFO: 127.0.0.1 - - [31/May/2020 20:52:24] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:24,960 DEBUG: Query parameters for monitor-autovaccum [in app.py:155]
+2020-05-31 20:52:24,960 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:24,960 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:25,139 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:155]
+2020-05-31 20:52:25,139 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:25,139 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:25,148 DEBUG: Query parameters for running-queries [in app.py:155]
+2020-05-31 20:52:25,149 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:25,149 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:25,163 DEBUG: Query parameters for table-sizes [in app.py:155]
+2020-05-31 20:52:25,163 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:25,163 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:25,170 DEBUG: Query parameters for time-consuming-queries [in app.py:155]
+2020-05-31 20:52:25,171 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:25,171 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:26,503 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:26,503 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:65]
+2020-05-31 20:52:26,683 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:26,683 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:65]
+2020-05-31 20:52:26,707 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:26,707 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:65]
+2020-05-31 20:52:26,719 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:26,719 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:65]
+2020-05-31 20:52:26,728 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:52:26,728 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:65]
+2020-05-31 20:52:27,023 INFO: 127.0.0.1 - - [31/May/2020 20:52:27] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:27,192 INFO: 127.0.0.1 - - [31/May/2020 20:52:27] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:27,215 INFO: 127.0.0.1 - - [31/May/2020 20:52:27] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:27,229 INFO: 127.0.0.1 - - [31/May/2020 20:52:27] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:27,240 INFO: 127.0.0.1 - - [31/May/2020 20:52:27] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:46,950 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:52:46,999 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:52:47,861 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:52:47,866 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:52:47,881 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:52:54,134 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:52:54,618 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:52:54,624 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:52:54,636 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:52:58,955 INFO: 127.0.0.1 - - [31/May/2020 20:52:58] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:59,035 INFO: 127.0.0.1 - - [31/May/2020 20:52:59] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:52:59,188 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:155]
+2020-05-31 20:52:59,189 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,189 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:59,375 DEBUG: Query parameters for connections [in app.py:155]
+2020-05-31 20:52:59,375 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,377 DEBUG: Query parameters for database-sizes [in app.py:155]
+2020-05-31 20:52:59,377 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:59,378 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,381 DEBUG: Query parameters for cpu-intensive-queries [in app.py:155]
+2020-05-31 20:52:59,382 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:59,383 DEBUG: Query parameters for get-indexes [in app.py:155]
+2020-05-31 20:52:59,384 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,386 DEBUG: Query parameters for index-bloating [in app.py:155]
+2020-05-31 20:52:59,387 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,387 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:59,388 DEBUG: [] [in app.py:156]
+2020-05-31 20:52:59,389 DEBUG: [] [in app.py:157]
+2020-05-31 20:52:59,388 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:00,855 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,855 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:65]
+2020-05-31 20:53:00,927 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,927 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:65]
+2020-05-31 20:53:00,930 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,931 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:65]
+2020-05-31 20:53:00,941 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,941 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:65]
+2020-05-31 20:53:00,942 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,942 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:65]
+2020-05-31 20:53:00,948 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:00,949 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:65]
+2020-05-31 20:53:01,372 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,434 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,437 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,451 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,454 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,461 INFO: 127.0.0.1 - - [31/May/2020 20:53:01] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:01,679 DEBUG: Query parameters for monitor-autovaccum [in app.py:155]
+2020-05-31 20:53:01,679 DEBUG: [] [in app.py:156]
+2020-05-31 20:53:01,679 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:01,742 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:155]
+2020-05-31 20:53:01,742 DEBUG: [] [in app.py:156]
+2020-05-31 20:53:01,743 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:01,745 DEBUG: Query parameters for running-queries [in app.py:155]
+2020-05-31 20:53:01,745 DEBUG: [] [in app.py:156]
+2020-05-31 20:53:01,745 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:01,757 DEBUG: Query parameters for table-sizes [in app.py:155]
+2020-05-31 20:53:01,757 DEBUG: [] [in app.py:156]
+2020-05-31 20:53:01,757 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:01,759 DEBUG: Query parameters for time-consuming-queries [in app.py:155]
+2020-05-31 20:53:01,760 DEBUG: [] [in app.py:156]
+2020-05-31 20:53:01,760 DEBUG: [] [in app.py:157]
+2020-05-31 20:53:03,202 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:03,202 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:65]
+2020-05-31 20:53:03,289 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:03,290 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:65]
+2020-05-31 20:53:03,299 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:03,299 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:65]
+2020-05-31 20:53:03,317 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:03,317 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:65]
+2020-05-31 20:53:03,319 DEBUG: Query to be executed: [in app.py:64]
+2020-05-31 20:53:03,319 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:65]
+2020-05-31 20:53:03,718 INFO: 127.0.0.1 - - [31/May/2020 20:53:03] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:03,799 INFO: 127.0.0.1 - - [31/May/2020 20:53:03] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:03,809 INFO: 127.0.0.1 - - [31/May/2020 20:53:03] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:03,831 INFO: 127.0.0.1 - - [31/May/2020 20:53:03] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:53:03,837 INFO: 127.0.0.1 - - [31/May/2020 20:53:03] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:55:26,532 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:55:26,665 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:55:27,553 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:55:27,565 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:55:27,582 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:55:41,912 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:55:42,469 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:55:42,476 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:55:42,491 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:56:04,972 INFO: 127.0.0.1 - - [31/May/2020 20:56:04] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:05,069 INFO: 127.0.0.1 - - [31/May/2020 20:56:05] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:05,205 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:157]
+2020-05-31 20:56:05,205 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,206 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:05,427 DEBUG: Query parameters for connections [in app.py:157]
+2020-05-31 20:56:05,428 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,428 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:05,429 DEBUG: Query parameters for cpu-intensive-queries [in app.py:157]
+2020-05-31 20:56:05,431 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,431 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:05,433 DEBUG: Query parameters for database-sizes [in app.py:157]
+2020-05-31 20:56:05,436 DEBUG: Query parameters for get-indexes [in app.py:157]
+2020-05-31 20:56:05,437 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,437 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,438 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:05,440 DEBUG: Query parameters for index-bloating [in app.py:157]
+2020-05-31 20:56:05,440 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:05,441 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:05,442 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:06,757 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,757 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:67]
+2020-05-31 20:56:06,972 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,973 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:67]
+2020-05-31 20:56:06,976 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,977 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:67]
+2020-05-31 20:56:06,984 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,985 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:67]
+2020-05-31 20:56:06,990 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,991 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:67]
+2020-05-31 20:56:06,994 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:06,994 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:67]
+2020-05-31 20:56:07,277 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,485 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,496 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,499 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,509 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,510 INFO: 127.0.0.1 - - [31/May/2020 20:56:07] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:07,585 DEBUG: Query parameters for monitor-autovaccum [in app.py:157]
+2020-05-31 20:56:07,586 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:07,586 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:07,793 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:157]
+2020-05-31 20:56:07,793 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:07,793 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:07,806 DEBUG: Query parameters for running-queries [in app.py:157]
+2020-05-31 20:56:07,806 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:07,806 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:07,809 DEBUG: Query parameters for table-sizes [in app.py:157]
+2020-05-31 20:56:07,809 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:07,810 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:07,819 DEBUG: Query parameters for time-consuming-queries [in app.py:157]
+2020-05-31 20:56:07,820 DEBUG: [] [in app.py:158]
+2020-05-31 20:56:07,820 DEBUG: [] [in app.py:159]
+2020-05-31 20:56:09,111 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:09,112 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:67]
+2020-05-31 20:56:09,361 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:09,362 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:67]
+2020-05-31 20:56:09,370 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:09,370 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:67]
+2020-05-31 20:56:09,386 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:09,387 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:67]
+2020-05-31 20:56:09,390 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:56:09,390 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:67]
+2020-05-31 20:56:09,632 INFO: 127.0.0.1 - - [31/May/2020 20:56:09] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:09,869 INFO: 127.0.0.1 - - [31/May/2020 20:56:09] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:09,884 INFO: 127.0.0.1 - - [31/May/2020 20:56:09] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:10,153 INFO: 127.0.0.1 - - [31/May/2020 20:56:10] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:10,156 INFO: 127.0.0.1 - - [31/May/2020 20:56:10] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:56:52,191 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:56:52,240 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:56:53,168 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:56:53,179 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:56:53,198 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:57:37,512 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:57:37,957 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:57:37,965 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:57:37,978 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:57:45,049 INFO: 127.0.0.1 - - [31/May/2020 20:57:45] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:45,132 INFO: 127.0.0.1 - - [31/May/2020 20:57:45] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:45,279 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:157]
+2020-05-31 20:57:45,279 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,280 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:45,464 DEBUG: Query parameters for connections [in app.py:157]
+2020-05-31 20:57:45,468 DEBUG: Query parameters for cpu-intensive-queries [in app.py:157]
+2020-05-31 20:57:45,468 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,469 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,470 DEBUG: Query parameters for database-sizes [in app.py:157]
+2020-05-31 20:57:45,471 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:45,472 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:45,473 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,474 DEBUG: Query parameters for get-indexes [in app.py:157]
+2020-05-31 20:57:45,478 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,478 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:45,477 DEBUG: Query parameters for index-bloating [in app.py:157]
+2020-05-31 20:57:45,478 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:45,479 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:45,480 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:46,849 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:46,850 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:67]
+2020-05-31 20:57:47,023 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:47,024 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:67]
+2020-05-31 20:57:47,027 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:47,027 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:67]
+2020-05-31 20:57:47,054 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:47,056 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:67]
+2020-05-31 20:57:47,078 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:47,078 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:67]
+2020-05-31 20:57:47,090 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:47,091 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:67]
+2020-05-31 20:57:47,375 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,536 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,546 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,571 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,583 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,612 INFO: 127.0.0.1 - - [31/May/2020 20:57:47] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:47,682 DEBUG: Query parameters for monitor-autovaccum [in app.py:157]
+2020-05-31 20:57:47,683 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:47,683 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:47,842 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:157]
+2020-05-31 20:57:47,842 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:47,842 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:47,853 DEBUG: Query parameters for running-queries [in app.py:157]
+2020-05-31 20:57:47,853 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:47,853 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:47,876 DEBUG: Query parameters for table-sizes [in app.py:157]
+2020-05-31 20:57:47,876 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:47,876 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:47,889 DEBUG: Query parameters for time-consuming-queries [in app.py:157]
+2020-05-31 20:57:47,890 DEBUG: [] [in app.py:158]
+2020-05-31 20:57:47,890 DEBUG: [] [in app.py:159]
+2020-05-31 20:57:49,224 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:49,224 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:67]
+2020-05-31 20:57:49,379 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:49,379 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:67]
+2020-05-31 20:57:49,394 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:49,394 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:67]
+2020-05-31 20:57:49,398 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:49,398 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:67]
+2020-05-31 20:57:49,424 DEBUG: Query to be executed: [in app.py:66]
+2020-05-31 20:57:49,425 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:67]
+2020-05-31 20:57:49,748 INFO: 127.0.0.1 - - [31/May/2020 20:57:49] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:49,887 INFO: 127.0.0.1 - - [31/May/2020 20:57:49] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:49,903 INFO: 127.0.0.1 - - [31/May/2020 20:57:49] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:49,910 INFO: 127.0.0.1 - - [31/May/2020 20:57:49] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:57:49,938 INFO: 127.0.0.1 - - [31/May/2020 20:57:49] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:11,441 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:58:11,478 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:58:12,415 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:58:12,427 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:58:12,448 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:58:17,846 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:58:18,356 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:58:18,362 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:58:18,375 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:58:21,180 INFO: 127.0.0.1 - - [31/May/2020 20:58:21] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:21,259 INFO: 127.0.0.1 - - [31/May/2020 20:58:21] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:21,413 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:158]
+2020-05-31 20:58:21,414 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,414 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:21,591 DEBUG: Query parameters for connections [in app.py:158]
+2020-05-31 20:58:21,593 DEBUG: Query parameters for database-sizes [in app.py:158]
+2020-05-31 20:58:21,595 DEBUG: Query parameters for cpu-intensive-queries [in app.py:158]
+2020-05-31 20:58:21,595 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,597 DEBUG: Query parameters for get-indexes [in app.py:158]
+2020-05-31 20:58:21,597 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,598 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,601 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:21,600 DEBUG: Query parameters for index-bloating [in app.py:158]
+2020-05-31 20:58:21,601 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,601 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:21,599 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:21,602 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:21,603 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:21,604 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:23,017 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,017 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:68]
+2020-05-31 20:58:23,157 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,157 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:68]
+2020-05-31 20:58:23,168 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,169 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:68]
+2020-05-31 20:58:23,179 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,181 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:68]
+2020-05-31 20:58:23,185 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,185 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:68]
+2020-05-31 20:58:23,190 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:23,190 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:68]
+2020-05-31 20:58:23,538 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,669 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,679 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,693 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,698 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,706 INFO: 127.0.0.1 - - [31/May/2020 20:58:23] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:23,845 DEBUG: Query parameters for monitor-autovaccum [in app.py:158]
+2020-05-31 20:58:23,845 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:23,845 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:23,974 DEBUG: Query parameters for queries-running-for-morethan-2-mins [in app.py:158]
+2020-05-31 20:58:23,974 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:23,974 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:23,984 DEBUG: Query parameters for running-queries [in app.py:158]
+2020-05-31 20:58:23,984 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:23,984 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:23,997 DEBUG: Query parameters for table-sizes [in app.py:158]
+2020-05-31 20:58:23,997 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:23,997 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:24,003 DEBUG: Query parameters for time-consuming-queries [in app.py:158]
+2020-05-31 20:58:24,004 DEBUG: [] [in app.py:159]
+2020-05-31 20:58:24,004 DEBUG: [] [in app.py:160]
+2020-05-31 20:58:25,405 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:25,406 DEBUG: 
+SELECT schemaname,relname,last_autovacuum,last_autoanalyze FROM pg_stat_all_tables
+ [in app.py:68]
+2020-05-31 20:58:25,506 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:25,507 DEBUG: 
+SELECT
+--    now() - query_start AS "runtime",
+    usename,
+    datname,
+    state,
+    query
+FROM
+    pg_stat_activity
+WHERE now() - query_start > '2 minutes'::interval 
+--ORDER BY runtime DESC
+ [in app.py:68]
+2020-05-31 20:58:25,510 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:25,511 DEBUG: 
+SELECT
+    pid,
+    --age(query_start, clock_timestamp()),
+    usename,
+    query
+FROM
+    pg_stat_activity
+WHERE
+    query != '<IDLE>'
+AND query NOT ilike '%pg_stat_activity%' 
+order by query_start desc
+ [in app.py:68]
+2020-05-31 20:58:25,519 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:25,519 DEBUG: 
+SELECT
+    relname,
+    pg_total_relation_size ( relname::regclass) / 1024 as full_size_kb, 
+    pg_relation_size(relname::regclass) / 1024 as table_size_kb, 
+    pg_total_relation_size(relname::regclass) - pg_relation_size(relname::regclass) / 1024 as index_size_kb 
+from 
+    pg_stat_user_tables 
+order by pg_total_relation_size(relname::regclass) desc 
+limit 10
+ [in app.py:68]
+2020-05-31 20:58:25,542 DEBUG: Query to be executed: [in app.py:67]
+2020-05-31 20:58:25,543 DEBUG: 
+SELECT substring(query, 1, 100) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY avg_time DESC LIMIT 20
+ [in app.py:68]
+2020-05-31 20:58:25,931 INFO: 127.0.0.1 - - [31/May/2020 20:58:25] "GET /query_execution/monitor-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:26,017 INFO: 127.0.0.1 - - [31/May/2020 20:58:26] "GET /query_execution/queries-running-for-morethan-2-mins HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:26,023 INFO: 127.0.0.1 - - [31/May/2020 20:58:26] "GET /query_execution/running-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:26,026 INFO: 127.0.0.1 - - [31/May/2020 20:58:26] "GET /query_execution/table-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:58:26,052 INFO: 127.0.0.1 - - [31/May/2020 20:58:26] "GET /query_execution/time-consuming-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 20:59:44,759 INFO:  * Detected change in 'C:\\Users\\ravis\\Desktop\\Postgres360\\app.py', reloading [in _internal.py:122]
+2020-05-31 20:59:44,820 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:59:45,518 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:59:45,522 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:59:45,531 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 20:59:55,702 INFO:  * Restarting with stat [in _internal.py:122]
+2020-05-31 20:59:56,235 WARNING:  * Debugger is active! [in _internal.py:122]
+2020-05-31 20:59:56,241 INFO:  * Debugger PIN: 296-999-343 [in _internal.py:122]
+2020-05-31 20:59:56,253 INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit) [in _internal.py:122]
+2020-05-31 21:00:00,728 INFO: 127.0.0.1 - - [31/May/2020 21:00:00] "GET / HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:00,812 INFO: 127.0.0.1 - - [31/May/2020 21:00:00] "GET /get_query_map HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:00,963 DEBUG: Query parameters for candidates-for-autovaccum [in app.py:159]
+2020-05-31 21:00:00,963 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:00,963 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:01,141 DEBUG: Query parameters for connections [in app.py:159]
+2020-05-31 21:00:01,142 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:01,142 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:01,145 DEBUG: Query parameters for cpu-intensive-queries [in app.py:159]
+2020-05-31 21:00:01,145 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:01,146 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:01,148 DEBUG: Query parameters for database-sizes [in app.py:159]
+2020-05-31 21:00:01,148 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:01,149 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:01,151 DEBUG: Query parameters for get-indexes [in app.py:159]
+2020-05-31 21:00:01,151 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:01,151 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:01,153 DEBUG: Query parameters for index-bloating [in app.py:159]
+2020-05-31 21:00:01,153 DEBUG: [] [in app.py:160]
+2020-05-31 21:00:01,154 DEBUG: [] [in app.py:161]
+2020-05-31 21:00:02,521 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,522 DEBUG: 
+SELECT *,
+  n_dead_tup > av_threshold AS "av_needed",
+  CASE WHEN reltuples > 0
+       THEN round(100.0 * n_dead_tup / (reltuples))
+       ELSE 0
+  END AS pct_dead
+FROM (SELECT
+      N.nspname,
+      C.relname,
+      pg_stat_get_tuples_inserted(C.oid) AS n_tup_ins,
+      pg_stat_get_tuples_updated(C.oid) AS n_tup_upd,
+      pg_stat_get_tuples_deleted(C.oid) AS n_tup_del,
+      pg_stat_get_live_tuples(C.oid) AS n_live_tup,
+      pg_stat_get_dead_tuples(C.oid) AS n_dead_tup,
+      C.reltuples AS reltuples,
+      round(current_setting('autovacuum_vacuum_threshold')::integer
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * C.reltuples) AS av_threshold,
+      date_trunc('minute', greatest(pg_stat_get_last_vacuum_time(C.oid),
+                                    pg_stat_get_last_autovacuum_time(C.oid))) AS last_vacuum,
+      date_trunc('minute', greatest(pg_stat_get_last_analyze_time(C.oid), pg_stat_get_last_analyze_time(C.oid))) AS last_analyze
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE C.relkind IN ('r', 't')
+AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND
+    N.nspname !~ '^pg_toast'
+    ) AS av
+ORDER BY av_needed DESC,n_dead_tup DESC
+ [in app.py:69]
+2020-05-31 21:00:02,671 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,671 DEBUG: 
+SELECT substring(query, 1, 50) AS short_query, round(total_time::numeric, 2) AS total_time, calls, rows, round(total_time::numeric / calls, 2) AS avg_time, round((100 * total_time / sum(total_time::numeric) OVER ())::numeric, 2) AS percentage_cpu FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20
+ [in app.py:69]
+2020-05-31 21:00:02,673 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,674 DEBUG: 
+SELECT
+    datname AS database,
+    pg_database_size(datname) / 1024 as SIZE_KB 
+FROM
+    pg_database
+ORDER BY
+    pg_database_size(datname)
+ [in app.py:69]
+2020-05-31 21:00:02,683 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,683 DEBUG:  select client_addr, usename, datname, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc 
+ [in app.py:69]
+2020-05-31 21:00:02,685 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,685 DEBUG: 
+select
+    t.relname as table_name,
+    i.relname as index_name,
+    string_agg(a.attname, ',') as column_name
+from
+    pg_class t,
+    pg_class i,
+    pg_index ix,
+    pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname not like 'pg_%'
+group by  
+    t.relname,
+    i.relname
+order by
+    t.relname,
+    i.relname
+ [in app.py:69]
+2020-05-31 21:00:02,688 DEBUG: Query to be executed: [in app.py:68]
+2020-05-31 21:00:02,689 DEBUG: 
+SELECT
+  nspname,
+  relname,
+  round(100 * pg_relation_size(indexrelid) / pg_relation_size(indrelid)) / 100 AS index_ratio,
+  pg_relation_size(indexrelid) / 1024 AS index_size_kb,
+  pg_relation_size(indrelid) / 1024 AS table_size_kb
+FROM pg_index I
+LEFT JOIN pg_class C ON (C.oid = I.indexrelid)
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND
+  C.relkind='i' AND
+  pg_relation_size(indrelid) > 0
+ [in app.py:69]
+2020-05-31 21:00:03,049 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/candidates-for-autovaccum HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:03,197 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/connections HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:03,201 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/cpu-intensive-queries HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:03,206 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/get-indexes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:03,208 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/database-sizes HTTP/1.1" 200 - [in _internal.py:122]
+2020-05-31 21:00:03,216 INFO: 127.0.0.1 - - [31/May/2020 21:00:03] "GET /query_execution/index-bloating HTTP/1.1" 200 - [in _internal.py:122]
